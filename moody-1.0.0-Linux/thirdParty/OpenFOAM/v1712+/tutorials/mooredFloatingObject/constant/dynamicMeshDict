@@ -1,0 +1,107 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  plus                                  |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      motionProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMesh       dynamicMotionSolverFvMesh;
+
+motionSolverLibs   ("libmoodyRigidBodyMeshMotion.so");
+
+motionSolver       rigidBodyMotion;
+
+rigidBodyMotionCoeffs
+{
+    report          on;
+
+    solver
+    {
+        type Newmark;
+    }
+
+    rigidBodyIterations 5; // option to make restraints and position more converged before solving fluid again.  
+    accelerationRelaxation 0.7;
+
+    bodies
+    {
+        floatingObject
+        {
+            type            cuboid;
+            parent          root;
+
+            // Cuboid dimensions
+            Lx              0.3;
+            Ly              0.2;
+            Lz              0.5;
+
+            // Density of the cuboid
+            rho             500;
+
+            // Cuboid mass
+            mass            #calc "$rho*$Lx*$Ly*$Lz";
+            L               ($Lx $Ly $Lz);
+            centreOfMass    (0 0 0.25);
+            transform       (1 0 0 0 1 0 0 0 1) (0.5 0.45 0.1);
+
+	          
+	    joint
+            {
+	
+	
+                type            composite;
+                joints
+                (
+                    {
+                        type Pxyz;
+                    }
+                    {
+                        type Rxyz;
+                    }
+                );
+
+            }
+
+	
+            patches         (floatingObject);
+            innerDistance   0.05;
+            outerDistance   0.35;
+        }
+    }
+
+    restraints
+    {
+		moodyRestraint
+		{
+			type 			moodyR;
+		
+			body 			floatingObject;
+		
+			attachmentPoints 	(
+					(-0.15 -0.1 0)
+					(-0.15  0.1 0)
+					( 0.15  0.1 0)
+					(0.15  -0.1 0)
+					);
+
+
+			// bodies			(floatingObject); // if different bodies are moored they should be listed here.
+			mooringSystemFilename	"mooring/OFmooring.m";		
+			// mooringRampTime	2; // option to ramp up mooring force from 0
+
+		}
+    }
+
+}
+
+
+// ************************************************************************* //

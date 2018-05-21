@@ -1,0 +1,61 @@
+#FC = gfortran
+FC = '/chalmers/sw/sup64/gcc-4.9.0/bin/gfortran'
+#FC = ifort
+
+SRC = FAST_Mods.f90
+SRC += Noise.f90
+SRC_F = fftpack.f
+SRC += FFTMod.f90
+SRC += moody.f90 
+SRC += HydroCalc.f90
+SRC += AeroCalc.f90
+SRC += FAST_IO.f90
+SRC += FAST.f90
+SRC += FAST_Lin.f90
+SRC += FAST2ADAMS.f90
+#SRC += BladedDLLInterface_Linux.f90
+SRC += BladedInterfaceLinuxSO.f90
+SRC += UserSubs_forBladedDLL.f90
+SRC += UserVSCont_KP_forBladedDLL.f90
+#SRC += PitchCntrl_ACH.f90
+#SRC += UserSubs.f90
+#SRC += UserVSCont_KP.f90
+SRC += SetVersion.f90
+SRC += FAST_Prog.f90
+
+OBJ = $(SRC:.f90=.o)
+OBJ_F = $(SRC_F:.f=.o)
+
+ifdef BASEDIR
+	INCLUDE = $(BASEDIR)/include
+	MODDIR = $(BASEDIR)/include
+else
+	MODDIR = ./
+endif
+
+ifndef OUTDIR
+	OUTDIR = ./
+endif
+
+
+all: checkdir $(SRC:.f90=.d) $(addprefix $(OUTDIR)/,$(OBJ)) $(SRC_F:.f=.d) $(addprefix $(OUTDIR)/,$(OBJ_F))
+
+$(OUTDIR)/%.o: %.f*
+	$(FC) $(FFLAGS) -c $< -o $@ -J$(MODDIR)	-I$(INCLUDE) 
+	
+%.d: %.f*
+	@set -e; rm -f $@; \
+	$(FC) -E -cpp -MM $< -MF $@.$$$$ > /dev/null; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+checkdir:
+	@mkdir -p $(OUTDIR); \
+	mkdir -p $(MODDIR);
+
+-include $(SRC:.f90=.d)
+-include $(SRC_F:.f=.d)
+      
+.PHONY: clean checkdir
+clean:
+	rm -rf *.d *.s *.o
