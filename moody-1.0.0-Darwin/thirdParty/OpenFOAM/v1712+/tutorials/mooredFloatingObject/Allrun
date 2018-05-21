@@ -1,0 +1,28 @@
+#!/bin/sh
+cd ${0%/*} || exit 1                        # Run from this directory
+. $WM_PROJECT_DIR/bin/tools/RunFunctions    # Tutorial run functions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication subsetMesh -overwrite c0 -patch floatingObject
+restore0Dir
+runApplication setFields
+runApplication decomposePar
+mpirun interDyMFoam -parallel > log.interDyMFoam
+
+## Reconstruct and remove processor results.
+runApplication reconstructPar
+rm -rf processor*
+
+## Post process data to VTK, to make time update work in Paraview (a little bit of a hack)
+foamToVTK -useTimeName
+# rename times to a sequence
+./makeSequentialVTK.sh
+
+## List numeric values in a txt-file (-v sorts in numeric order, -d lists directory name only)
+ls -v -d [0-9] [0-9].[0-9]* >tList.txt
+
+## Run moodyPost.x on output folder to print vtk files
+moodyPost.x mooring/results/ -vtk -timeList tList.txt
+
+#------------------------------------------------------------------------------
