@@ -1,5 +1,5 @@
 # moodyAPI
-The API of MooDy: A dynamic mooring library used for coupled station-keeping simulations in OpenFOAM and other hydrodynamic codes.
+The API of Moody: A dynamic mooring library used for coupled station-keeping simulations in OpenFOAM and other hydrodynamic codes.
 
 The current version of moody is aimed at coupled simulations. The mooring code itself is precompiled, however the coupling functionality is here released opend source. The primary aim is to release the OpenFOAM-Moody restraint which enables dynamic mooring restraints in OpenFOAM. It requires some changes to the native rirgid body motion framework, and therefore a modified src-code of the v1712+ rigid body library is also included in this release. Other interfaces are to matlab and to fortran (with a road-map to FAST-v7 coupling).
 
