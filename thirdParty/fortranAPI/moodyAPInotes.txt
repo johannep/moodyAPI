@@ -1,0 +1,99 @@
+This is a diary from implementing moody in FAST v7.
+The moody fortran module can be used by itself in other Fortran programs. 
+* * * * * * * * * * * * Description of the API to moody * * * * * * * * * * * *	  
+API DESCRIPTION: 
+	In fast/Source folder: added moody.f90 - module file
+	moody module with 6 subroutines, 3 of which are inside an interface block for use with the c++ code. 
+	
+		1. moodySolve(X,F,lastTime,curTime): Interface routine for cpp version in moodyWrapper.h. 
+			X - platform state (x,y,z,roll,pitch,yaw) at curTime.
+			F - mooring loads (fx,fy,fz,mx,my,mz) QUESTION: Are the moments in global or local reference frame? 
+			lastTime - last save time of . Should be last converged solution time.
+				    Now only works with the last savetime of XDHistory used in Kernel of radiation problem.
+			curTime  -  current time of simulation at which to return loads. 
+			
+		2. moodyInit (fName, nVals, initialValues, startTime ): Interface routine for cpp version in moodyWrapper.h. 
+			fName - Hardcoded to <WAMITFilePath>'/mooringSystem.m' ! ugly solution but functional.				
+			nVals - Length of inputValues. Hardcoded to 6 which is the length of X.
+			initialValues - platform state at startTime. 
+			startTime - hardcoded to 0 s in FloatingPlatform::InitFltngPltfrmLd()
+
+		3. moodyClose () : Interface routine for cpp version in moodyWrapper.h
+			Closing function of the cpp objects. To be executed at end of program. 
+				
+		4. moodyAPI(X,F,t1,t2): routine to call each time step. Fortran wrapper for moodySolve
+			 
+		5. moodyInitialise(fName, nVals, initialValues,startTime): initialisation routine. Fortran wrapper for moodyInit
+		
+		6. moody_terminate(): close moody. Fortran wraper for moodyClose() 
+	
+Calls to moody: 		
+		Calls to moody in HydroCalc.f90::Module FloatingPlatform 
+		
+			moodyAPI is called instead of UserLine( ... ) in case of mooring type 2 in subroutine FltngPtfLd.
+	
+			moodyInitialise is called in case of mooring type 2 in subroutine InitFltngPtfmLd 
+
+		 	moody_terminate is called after in subroutine FP_TERMINATE together with other de-allocations.
+		 	
+		 	
+* * * * * * * * * * * * Changes made to the code: * * * * * * * * * * * * 
+
+NOTE: I had to hard-code compiler choice throughout FAST. I dont know why this is not set as environment variable?
+	  This was because I wanted the same gcc version used for the moorings as for the gfort.
+	  
+	  
+Compiling: 
+	moorDir added to Makefile FAST root dir.
+	-L/$(moorDir)/lib -lmoody flags added in linking stage of fast (and others, group call in Makefile)
+	
+	in fast/Source/Makefile: $SRC += moody.f90 added BEFORE HydroCalc.f90
+	
+Code changes:	
+	
+	Added in HydroCalc.f90 ::
+	
+	In MODULE FloatingPlatform:
+
+		USE moody ! to get access to the moody api.
+	
+	In SUBROUTINE InitFltngPltfmLd:
+		
+				
+		LineMod = 2 option added, with the following contents:
+	 
+			ELSEIF ( LineMod == 2 )  THEN  ! .TRUE if we have a moody mooring
+      
+			  startTime = 0.0
+			  CALL GETPATH ( TRIM(WAMITFile) , Line) 			! GETPATH is used to get the path of WAMITFile. 
+			  CALL moodyInitialise ( TRIM(Line)//'mooringSystem.m' , 6 , X0 , startTime ) 
+			  ! 		The mooring input file MUST be located in the same directory as the WAMITFile and be named mooringSystem.m 
+	  
+		   	ENDIF
+	 	
+	 	Please note that this diables the other option of user line. It is quite easy to include moody as option 3, but this is NOT supported in this version.
+	 			
+	In SUBROUTINE FP_TERMINATE
+	
+		CALL moody_Terminate () 	after all deallocations.
+	
+	In SUBROUTINE FltngPltfmL
+		New saved variables: LastMoorTime,  and LastSavedMoorTime.
+		To keep track of time progression: 
+		under linemod==2
+		
+		if( LastMoorTime*OnePlusEps < ZTime ) THEN ! we have moved forward in time, and thus:
+			LastSavedMoorTime = LastMoorTime	
+	 	endif
+		
+		CALL moodyAPI ( X , F_Lines , LastSavedMoorTime,  ZTime ) ! under LineMod Case 2
+		
+		LastMoorTime = ZTime
+		
+	NOTE: This will work as long as we use prediction-correction type timestepping. 
+Done.		
+	
+
+
+
+

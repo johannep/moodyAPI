@@ -1,0 +1,148 @@
+Moody is a dynamic restraint. It is therefore dependent on the time between restraint calls. 
+Therefore, the following modifications are needed to the rigidBody library: (developed under v1712+)
+
+1. Start with rigidBodyDynamics library: 
+1.1. In class rigidBodyModel: Add members t_, prevt_ and prevX0_. 
+Also add access methods and an updateTimeAndTransform(time) method. 
+	a) In rigidBodyModel.H:
+
+        //- Transform for external forces to the bodies reference frame, previous state 
+        mutable DynamicList<spatialTransform> prevX0_;
+
+        //- Present time
+        scalar t_;
+
+        //- Previous time
+        scalar prevt_;
+		
+		// ------ //		
+
+        spatialTransform prevX0(const label bodyId) const;
+
+        inline const scalar& time() const;
+
+        inline const scalar& prevTime() const;
+
+        inline void updateTimeAndTransform(const scalar& t);
+
+	//- finally remove const specifier for applyRestraints() method
+	
+		
+		
+	b) In rigidBodyModelI.H:
+
+		inline const Foam::scalar& Foam::RBD::rigidBodyModel::time() const
+		{
+			return t_;
+		}
+
+		inline const Foam::scalar& Foam::RBD::rigidBodyModel::prevTime() const
+		{
+			return prevt_;
+		}
+
+		// Update time (via newTime(t) in rigidBodyMotion)
+		inline void Foam::RBD::rigidBodyModel::updateTimeAndTransform(const scalar& t)
+		{
+			prevX0_=X0_;
+			prevt_=t_;
+			t_=t;
+		}
+
+	c) In rigidBodyModel.C: 
+			
+		// Previous transformation matrix:
+		Foam::spatialTransform Foam::RBD::rigidBodyModel::prevX0
+		(
+			const label bodyId
+		) const
+		{
+			if (merged(bodyId))
+			{
+				const subBody& mBody = mergedBody(bodyId);
+				return mBody.masterXT() & prevX0_[mBody.masterID()];
+			}
+
+			return prevX0_[bodyId];
+		}
+
+		// remove const specifier for applyRestraints() 
+				
+//- Test to recompile library -//
+
+1.2. Add method newTime(t) to class rigidBodyMotion
+	a) In rigidBodyMotion.H:
+
+	    //- Store the motion state and update time at the beginning of the time-step
+	    inline void newTime(const scalar& t);
+
+	b) In rigidBodyMotionI.H:
+	inline void Foam::RBD::rigidBodyMotion::newTime(const scalar& t)
+	{
+	    newTime();
+	    updateTimeAndTransform(t);
+	}
+
+//- Test to recompile library -//
+
+1.3. Remove const requirement on restrain function. 
+
+	a) In restraints/restrain.H, change existing restrain method to: 
+	
+	    //- Accumulate the retraint internal joint forces into the tau field and
+        //  external forces into the fx field
+        virtual void restrain
+        (
+            scalarField& tau,
+            Field<spatialVector>& fx
+        ) const
+        {};
+
+
+        //- Accumulate the retraint internal joint forces into the tau field and
+        //  external forces into the fx field
+        virtual void restrain
+        (
+            scalarField& tau,
+            Field<spatialVector>& fx
+        )
+        {
+            restrain(tau, fx);
+        }
+	
+	
+//- Test to recompile library -//
+
+1.4. Install moodyR restraint: 
+	a) Add moodyR.C and moodyR.H to the rigidBodyDynamics/restraints folder.
+	
+	b) Add moodyR.C to the file list in Make/files. 
+	
+	c) Change Make/options to:  
+		EXE_INC = \
+			-I$(MOODY_DIR)/include
+	
+		LIBS = \
+			-L$(MOODY_DIR)/lib \
+			-lmoody	
+	
+	
+//- Test to recompile library -//
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+2. ----- Move to library rigidBodyMeshMotion -----
+2.1 Include the time in newTime call from rigidBodyMotionSolver.C
+	a) At the very end of the constructor, add:
+	
+		// Update motionState with startTime.
+		motion_.newTime(mesh.time().startTime().value());
+
+	b) In rigidBodyMotionSolver::solve(), change 'motion_.newTime();' to:
+		// motion_.newTime();
+		motion_.newTime( t.timeOutputValue());
+	
+//- Test to recompile library -//
+
+That's it!
+Johannes Palm, 2018-02-07

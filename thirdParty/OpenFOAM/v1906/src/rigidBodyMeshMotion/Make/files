@@ -1,0 +1,5 @@
+rigidBodyMeshMotion/rigidBodyMeshMotion.C
+rigidBodyMeshMotionSolver/rigidBodyMeshMotionSolver.C
+
+LIB = $(FOAM_USER_LIBBIN)/libmoodyRigidBodyMeshMotion
+

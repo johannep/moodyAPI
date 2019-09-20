@@ -1,0 +1,109 @@
+MOODY RESTRAINT IN OpenFOAM v1806
+=================================
+This text describes the steps to implement MOODY in OpenFOAM v1806, in the rigidBodySolver library.
+Moody is a dynamic restraint. It is therefore dependent on the time between restraint calls. 
+In the v1806 the amount of modifications needed is much smaller as the time object is available from the restraint (through the model_ member).
+The first three steps are made to compile and make ready the rigidBodylibrary for use with a moody restraint. 
+Please note that using the symplectic rigidBodySolver for cases with restart might lead to transients in the mooring response.
+
+Optional
+--------
+The last step defines " rigidBodyIterations " as an extra input parameter in the dynamicMeshDict. 
+It is recommended to use rigidBodyIterations > 1 if the restraints are stiff, if one uses the Newmark or Crank-Nicolson solvers. 
+Each iteration runs the solve() function of the selected rigidBodySolver (Newmark, Crank Nicolson, Symplectic)
+The reason is that the initial guess is the solution at the previous time step. i
+For a stiff mooring, the previous position and v=0 is a very bad guess, which leads to transients in the PIMPLE 
+convergence unless it is resolved within the rigidBodySolver first. 
+
+1.0 In rigidBodyDynamics library: 
+ 
+    a) In rigidBodyModel/rigidBodyModel.H
+	//-Remove const specifier for applyRestraints() method
+    b) In rigidBodyModel/forwardDynamics.C	
+	//-Remove const specifier for applyRestraints() method
+			
+
+1.1. Remove const requirement on restrain function. 
+
+	a) In restraints/restrain.H, change existing restrain method to: 
+	
+	    //- Accumulate the retraint internal joint forces into the tau field and
+        //  external forces into the fx field
+        virtual void restrain
+        (
+            scalarField& tau,
+            Field<spatialVector>& fx
+        ) const
+        {};
+
+
+        //- Accumulate the retraint internal joint forces into the tau field and
+        //  external forces into the fx field
+        virtual void restrain
+        (
+            scalarField& tau,
+            Field<spatialVector>& fx
+        )
+        {
+            restrain(tau, fx);
+        }
+	
+	
+//- Test to recompile library -//
+
+1.2. Install moodyR restraint: 
+	a) Add moodyR.C and moodyR.H to the rigidBodyDynamics/restraints folder.
+	
+	b) Add moodyR.C to the file list in Make/files. 
+	
+	c) Change Make/options to:  
+		EXE_INC = \
+			-I$(MOODY_DIR)/include
+	
+		LIBS = \
+			-L$(MOODY_DIR)/lib \
+			-lmoody	
+	
+	
+//- Test to recompile library -//
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+Optional - Implement rigidBodyIterations
+----------------------------------------
+
+2.0 In rigidBodyMotion/rigidBodyMotion.H
+	Introduce the label rigidBodyIterations_ in the member list:
+
+	label rigidBodyIterations_;
+
+2.1 In rigidBodyMotion/rigidBodyMotion.C
+	a) Put a for loop around the solve call:
+	
+		for ( int ii=0; ii<rigidBodyIterations_; ++ii)
+			solver_->solve(tau, fx); 
+
+	b) Add to both dict-based constructors: (dont forget comma after solver_( ... ) line): 
+
+		rigidBodyIterations_(dict.lookupOrDefault<label>(rigidBodyIterations,1))
+	
+2.2 In rigidBodyMotion/rigidBodyMotionIO.C
+	a) Define read() behaviour of rigidBodyIterations
+	  
+	        rigidBodyIterations_(dict.lookupOrDefault<label>(rigidBodyIterations,1));
+
+	b) Define write() behaviour of rigidBodyIterations
+
+		os.writeEntry("rigidBodyIterations",rigidBodyIterations_);
+	
+
+
+//- Test to recompile library -//
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+That's it!
+Top of the mooring to you all 
+Johannes Palm
+2019-05-24
+

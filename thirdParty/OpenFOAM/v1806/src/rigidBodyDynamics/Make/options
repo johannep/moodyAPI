@@ -1,0 +1,7 @@
+EXE_INC = \
+	-I$(HOME)/moody/moody-2.0.0-Linux/include
+
+LIB_LIBS = \
+	-L$(HOME)/moody/moody-2.0.0-Linux/lib \
+        -Wl,-rpath=$(HOME)/moody/moody-2.0.0-Linux/lib  \
+	-lmoody
