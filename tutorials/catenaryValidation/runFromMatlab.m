@@ -1,4 +1,9 @@
 % Run T=1.25 s simulation 
+% get this location.
+p=fileparts(mfilename('fullpath'));
+
+run([p '/../../API/matlab/addMoodyPath']);
+
 moody('lindahl125.m');
 
 % Run period time T=3.5 s simulation

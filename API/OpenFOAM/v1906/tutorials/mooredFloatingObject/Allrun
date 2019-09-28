@@ -1,0 +1,28 @@
+#!/bin/sh
+cd ${0%/*} || exit 1                        # Run from this directory
+. $WM_PROJECT_DIR/bin/tools/RunFunctions    # Tutorial run functions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication subsetMesh -overwrite c0 -patch floatingObject
+restore0Dir
+runApplication setFields
+
+runApplication interFoam 
+
+# runApplication decomposePar
+# mpirun interFoam -parallel> log.interFoam
+
+## Reconstruct and remove processor results.
+# runApplication reconstructPar
+# rm -rf processor*
+
+
+## List numeric values in a txt-file (-v sorts in numeric order, -d lists directory name only)
+ls -v -d [0-9] [0-9].[0-9]* >tList.txt
+
+## Run moodyPost.x on output folder to print vtk files to mooring/results/VTK
+# Produces vtk files of cables and a cableN.vtk.series which can be loaded in later versions of Paraview
+moodyPost.x mooring/results/ -vtk -timeList tList.txt
+
+#------------------------------------------------------------------------------
