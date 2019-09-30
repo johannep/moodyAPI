@@ -21,6 +21,6 @@ else
     % NB: There is no bash-script with environment variables provided with
     % Moody for Windows. A brute force solution, if it does not work is to
     % copy all dll-files and executables to the same directory. 
-    system(['moody.exe -f ' inputName ' ' moreInput{1}]); % compute moody simulation.
+    system([fullfile(moodyPath,'bin','moodywindows.exe') ' -f ' inputName ' ' moreInput{1}]); % compute moody simulation.
 end
 
