@@ -9,6 +9,7 @@ Renamed thirdParty --> API , containing matlab, fortran and OpenFOAM sources.
 A bugfix in the OpenFOAM API for multi-processor simulations.
 post/matlab folder removed. matlab-scripts are now in API/matlab together with the matlab API and shell-interface. 
 moody-arch.tar.gz contains folders: etc/, bin/, lib/, and include/. Unpack your OS-version in place and all should work as before. 
+For the windows tutorial to run, I need to copy the libraries in lib/* into bin/. There is certainly a cleaner solution out there...
 -- END UPDATE --
 
 Highlights of the updates in Moody are listed below: 
