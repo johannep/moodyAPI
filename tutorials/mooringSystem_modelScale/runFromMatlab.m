@@ -1,9 +1,7 @@
 function runFromMatlab
 
 % collect present dir. 
-presentDir=fileparts(mfilename('fullpath'));
-% add moody path variables:
-run([presentDir '/../../API/matlab/addMoodyPath'])
+run(fullfile(fileparts(mfilename('fullpath')),'..','..','API','matlab','addMoodyPath'));
 
 %% File naming
 inp='mooringSystem.m';

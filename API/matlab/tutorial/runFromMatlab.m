@@ -2,8 +2,7 @@
 % Same result as in tutorial mooringSystem_modelScale is to be expected. 
 close all;
 % get file path here and execute addPath script
-p = fileparts(mfilename('fullpath'));
-run([p '/../addMoodyPath']);
+run(fullfile(fileparts(mfilename('fullpath')),'..','addMoodyPath'));
 
 
 %% External circular motion

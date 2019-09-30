@@ -25,14 +25,13 @@ end
 %% INITIALIZATION CALL TO MOODY
 function moodyInit(name,X,startTime)
     % Initialise Moody. 
-    % Get absolute file path:   
-    P=fileparts(mfilename('fullpath'));
-    run([P '/../addMoodyPath']); % sets parameter moodyPath to home folder of moody and selects architecture
+    % Sets parameter moodyPath to home folder of moody and select architecture
+    run(fullfile(fileparts(mfilename('fullpath')),'..','addMoodyPath')); 
     
-    % Add lib and include paths and load library
-    addpath([moodyPath '/lib']);
-    addpath([moodyPath '/include']);
-    loadlibrary(['libmoody' libEnding],'moodyWrapper.h','includepath',[moodyPath '/include']);
+    % Add lib and include paths and load library    
+    addpath(fullfile(moodyPath,'lib'));
+    addpath(fullfile(moodyPath,'include'));
+    loadlibrary(['libmoody' libEnding],'moodyWrapper.h','includepath',fullfile(moodyPath,'include'));
     
     % Call to initialise Moody
     calllib('libmoody','moodyInit',name,length(X),X,startTime);
