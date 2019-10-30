@@ -37,7 +37,7 @@ bool Foam::RBD::rigidBodyMotion::read(const dictionary& dict)
     aRelax_ = dict.lookupOrDefault<scalar>("accelerationRelaxation", 1.0);
     aDamp_ = dict.lookupOrDefault<scalar>("accelerationDamping", 1.0);
     report_ = dict.lookupOrDefault<Switch>("report", false);
-    rigidBodyIterations_(dict.lookupOrDefault<label>("rigidBodyIterations",1)); //- JP addition
+    rigidBodyIterations_ = dict.lookupOrDefault<label>("rigidBodyIterations",1); //- JP addition
 
     return true;
 }
